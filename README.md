@@ -5,4 +5,5 @@ Data Analysis project to help Airline Company to help how they can optimize thei
 + PostgreSQL
 + pgAdmin4
 
-[Schema](https://im.ge/i/uSY0GK)
+See File Untitled (1).png in Repositery for Schema.
+
