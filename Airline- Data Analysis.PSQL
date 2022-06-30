@@ -1,0 +1,441 @@
+/***** PSQL: Questions *****/
+
+/* 1. Represent the “book_date” column in “yyyy-mmm-dd”. User Bookings table */
+
+select
+bookings.book_ref,
+to_char(bookings.book_date, 'YYYY-MON-dd') book_date,
+bookings.total_amount
+from bookings.bookings
+
+/* 2. Create a table having ticket_no, boarding_no, seat_number, passenger_id, and passenger_name. */
+
+select 
+	BT.ticket_no,
+	boarding_no,
+	seat_no,
+	passenger_id,
+	passenger_name
+from bookings.boarding_passes BP
+inner join bookings.tickets BT
+on BP.ticket_no = BT.ticket_no
+
+/* 3. Which seat number is least allocated among all the seats?  */
+
+
+select 
+seat_no,
+count (book_date) book_date_count
+from bookings.bookings B
+inner join bookings.tickets T
+on B.book_ref = T.book_ref
+inner join bookings.boarding_passes BP
+on BP.ticket_no = T.ticket_no
+group by 
+seat_no
+order by 
+book_date_count asc
+
+/* 4. In the database, identify the month-wise highest paying passenger name and passenger id  */
+
+select 
+to_char(book_date,'Mon-YY'),
+passenger_id,
+passenger_name,
+total_amount
+from bookings.bookings B
+inner join bookings.tickets BT
+on B.book_ref = BT.book_ref
+order by 
+to_char(book_date,'Mon-YY') asc,
+total_amount desc
+
+/* 5.In the database, identify the month-wise least paying passenger name and passenger id?  */
+
+select 
+to_char(book_date, 'Mon-YY'),  
+passenger_id,
+passenger_name,
+sum (total_amount) Amount
+from bookings.bookings B
+inner join bookings.tickets T
+on B.book_ref = T.book_ref
+group by 
+book_date,
+passenger_id,
+passenger_name
+order by 
+Amount,
+book_date
+
+/* 6.How many tickets are there without boarding passes? */
+
+select 
+ticket_no,
+count (boarding_no) BN
+from bookings.boarding_passes
+where  boarding_no = 0
+group by 
+ticket_no
+
+/*
+
+7.      Categorize flights using the following logic (using the flight's table)  :
+
+a.      Early morning flights: 2 AM to 6 AM
+b.      Morning flights: 6 AM to 11 AM
+c.      Noon flights: 11 AM to 4 PM
+d.       Evening flights: 4 PM to 7 PM
+e.      Night flights: 7 PM to 11 PM
+f.       Late Night flights: 11 PM to 2 AM  
+
+*/
+
+with flights ( stime, etime, description)  as 
+     (values ('00:00:00'::time, '02:00:00'::time, 'Night flight') 
+           , ('02:00:00'::time, '06:00:00'::time, 'Early morning flight')
+           , ('06:00:00'::time, '11:00:00'::time, 'Morning flight')
+           , ('11:00:00'::time, '16:00:00'::time, 'Noon flight')
+           , ('16:00:00'::time, '19:00:00'::time, 'Evening flight')
+           , ('19:00:00'::time, '24:00:00'::time, 'Night flight')
+	  )
+	  select flight_id             	 	 "Filght ID"
+	  ,		flight_no                "Flight No"
+	  ,     scheduled_departure      "scheduled_departure"
+	  ,     scheduled_arrival        "scheduled_arrival"
+	  ,     flights.description                "Timings"
+	  from flights  
+	  join bookings.flights    f 
+     on (   (scheduled_departure at time zone 'Asia/Kolkata')::time(0) >= stime 
+        and (scheduled_arrival at time zone 'Asia/Kolkata')::time(0) <  etime 
+        )
+
+/*    8.Identify details of all the morning flights (morning means between 6 AM to 11 AM, using the flight's table)?    *\
+
+ with flights ( stime, etime, description)  as 
+             (values ('00:00:00'::time, '02:00:00'::time, 'Night flight') 
+                   , ('02:00:00'::time, '06:00:00'::time, 'Early morning flight')
+                   , ('06:00:00'::time, '11:00:00'::time, 'Morning flight')
+                   , ('11:00:00'::time, '16:00:00'::time, 'Noon flight')
+                   , ('16:00:00'::time, '19:00:00'::time, 'Evening flight')
+                   , ('19:00:00'::time, '24:00:00'::time, 'Night flight')
+              )
+              select flight_id               "Filght ID"
+              ,     flight_no                "Flight No"
+              ,     scheduled_departure      "scheduled_departure"
+              ,     scheduled_arrival        "scheduled_arrival"
+	  ,     flights.description      "Timings"   
+	  from flights  
+              join bookings.flights    f 
+             on (   (scheduled_departure at time zone 'Asia/Kolkata')::time(0) >= stime 
+                and (scheduled_arrival at time zone 'Asia/Kolkata')::time(0) <  etime 
+                )
+        Where flights.description = 'Morning flight'
+
+/*      9.Identify the earliest morning flight available from every airport.         /*
+
+with flights ( stime, etime, description)  as 
+             (values ('00:00:00'::time, '02:00:00'::time, 'Night flight') 
+                   , ('02:00:00'::time, '06:00:00'::time, 'Early morning flight')
+                   , ('06:00:00'::time, '11:00:00'::time, 'Morning flight')
+                   , ('11:00:00'::time, '16:00:00'::time, 'Noon flight')
+                   , ('16:00:00'::time, '19:00:00'::time, 'Evening flight')
+                   , ('19:00:00'::time, '24:00:00'::time, 'Night flight')
+              )
+              select flight_id               "Filght ID"
+              ,     flight_no                "Flight No"
+              ,     scheduled_departure      "scheduled_departure"
+              ,     scheduled_arrival        "scheduled_arrival"
+	  ,      departure_airport        "Airport"
+              ,     flights.description      "Timings"   
+	  from flights  
+              join bookings.flights    f 
+             on (   (scheduled_departure at time zone 'Asia/Kolkata')::time(0) >= stime 
+                and (scheduled_arrival at time zone 'Asia/Kolkata')::time(0) <  etime 
+                )
+        Where flights.description = 'Morning flight'
+
+/*   10.Find a list of airport codes in the Europe/Moscow timezone   /*
+
+select
+timezone,
+airport_code
+from bookings.airports_data
+where timezone = 'Europe/Moscow'
+
+/*    11.Write a query to get the count of Seats in various fare conditions for every aircraft code?   \*
+
+select 
+fare_conditions,
+AD.aircraft_code,
+count (seat_no) SEAT_COUNT
+from bookings.seats S
+inner join bookings.aircrafts_data AD
+on AD.aircraft_code = S.aircraft_code
+group by 
+AD.aircraft_code,
+fare_conditions
+
+/*    12.How many aircraft codes have at least one Business class seat?    \*
+
+select 
+fare_conditions,
+count (AD.aircraft_code) AIRCRAFT_CODE_COUNT
+from bookings.seats S
+inner join bookings.aircrafts_data AD
+on AD.aircraft_code = S.aircraft_code
+where fare_conditions = 'Business'
+group by  
+fare_conditions
+
+/*    13.Find out the name of the airport having a maximum number of departure flight    \*
+
+SELECT 
+count (scheduled_departure) C,
+departure_airport
+FROM bookings.flights 
+cross join bookings.airports_data
+where status = 'Departed'
+group by departure_airport
+order by c desc
+
+/*    14.Find out the name of the airport having least number of scheduled departure flights        \*
+
+SELECT 
+count (scheduled_departure) C,
+departure_airport
+FROM bookings.flights 
+cross join bookings.airports_data
+where status = 'Scheduled'
+group by departure_airport
+order by c 
+
+
+/*   15.How many flights from ‘DME’ airport don’t have actual departure?         \*
+
+select 
+count (departure_airport) DEPARTURE_AIRPORT,
+actual_departure
+from bookings.flights
+WHERE departure_airport = 'DME' AND actual_departure IS null
+group by 
+actual_departure
+
+/*   16.Identify flight ids having a range between 3000 to 6000        \*
+ 
+select 
+F.flight_iD,
+amount 
+from bookings.flights F
+INNER JOIN bookings.ticket_flights TF
+ON F.flight_id = TF.flight_id
+WHERE amount BETWEEN 3000 AND 6000
+ORDER BY amount ASC
+
+/*   17.     Write a query to get the count of flights flying between URS and KUF?     \*
+
+select 
+COUNT (flight_iD) COUNT_OF_FLIGHTS,
+departure_airport,
+arrival_airport
+from bookings.flights 
+WHERE departure_airport = 'URS' AND arrival_airport = 'KUF'
+GROUP BY departure_airport, arrival_airport
+
+/*   18.     Write a query to get the count of flights flying from either from NOZ or KRR?     \*
+
+select 
+COUNT (flight_iD) COUNT_OF_FLIGHTS,
+departure_airport
+from bookings.flights 
+WHERE departure_airport = 'NOZ' OR departure_airport = 'KRR'
+GROUP BY departure_airport
+
+/*   19.     Write a query to get the count of flights flying from KZN, DME, NBC,NJC,GDX,SGC,VKO,ROV    \*
+
+select 
+COUNT (flight_iD) COUNT_OF_FLIGHTS,
+departure_airport
+from bookings.flights 
+WHERE departure_airport IN ('KZN', 'DME', 'NBC', 'NJC', 'GDX', 'SGC', 'VKO', 'ROV')
+GROUP BY departure_airport
+
+/*   20.Write a query to extract flight details having range between 3000 and 6000 and flying from DME     \*
+
+select 
+F.flight_iD,
+amount 
+from bookings.flights F
+INNER JOIN bookings.ticket_flights TF
+ON F.flight_id = TF.flight_id
+WHERE amount BETWEEN 3000 AND 6000 AND departure_airport = 'DME'
+
+/*   21.Find the list of flight ids which are using aircrafts from “Airbus” company and got cancelled or delayed      \*
+
+select 
+flight_id,
+cast (model as text),
+status
+from bookings.flights
+cross join bookings.aircrafts_data 
+where cast (model as text) = '{"en": "Airbus A320-200", "ru": "Аэробус A320-200"}'
+and status in ('Cancelled', 'Delayed')
+
+/*   22.Find the list of flight ids which are using aircrafts from “Boeing” company and got cancelled or delayed     \*
+
+select 
+flight_id,
+cast (model as text),
+status
+from bookings.flights
+cross join bookings.aircrafts_data 
+where cast (model as text) = '{"en": "Boeing 777-300", "ru": "Боинг 777-300"}'
+and status in ('Cancelled', 'Delayed')
+
+/*   23.Which airport(name) has most cancelled flights (arriving)?     \*
+
+SELECT 
+count (scheduled_departure) C,
+departure_airport
+FROM bookings.flights 
+cross join bookings.airports_data
+where status = 'Cancelled'
+group by departure_airport
+order by c desc
+
+/*   24.Identify flight ids which are using “Airbus aircrafts”      \*
+
+select 
+flight_id,
+cast (model as text)
+from bookings.flights
+cross join bookings.aircrafts_data 
+where cast (model as text) = '{"en": "Airbus A320-200", "ru": "Аэробус A320-200"}'
+
+/*   25.Identify date-wise last flight id flying from every airport?     \*
+
+SELECT 
+flight_id,
+date (book_date),
+departure_airport,
+  LAST_VALUE(flight_id) 
+    OVER(
+        ORDER BY date (book_date)
+    ) BK
+FROM bookings.bookings
+cross join bookings.flights
+limit 100
+
+/*   26.Identify a list of customers who will get a refund due to the cancellation of the flights? And how much amount they will get?      \*
+
+select
+	passenger_id,
+	passenger_name,
+	status,
+	sum (total_amount)
+from bookings.flights F
+cross join bookings.tickets T
+inner join bookings.bookings B
+on T.book_ref = B.book_ref
+where status = 'Cancelled'
+group by 
+	passenger_id,
+	passenger_name,
+	status,
+  total_amount
+
+
+/*    27.Identify date wise first cancelled flight id flying for every airport?       \*
+
+SELECT 
+flight_id,
+date (book_date),
+departure_airport,
+  FIRST_VALUE(flight_id) 
+    OVER(
+        ORDER BY date (book_date)
+    ) BK
+FROM bookings.bookings
+cross join bookings.flights
+limit 100
+
+/*    28.Identify a list of Airbus flight ids which got cancelled.       \*
+
+select 
+flight_id,
+cast (model as text),
+status
+from bookings.flights
+cross join bookings.aircrafts_data 
+where cast (model as text) = '{"en": "Airbus A320-200", "ru": "Аэробус A320-200"}' and status = 'Cancelled'
+
+/*   29.     Identify a list of flight ids having the highest range.  \*
+
+select 
+flight_id,
+cast (model as text),
+"range"
+from bookings.flights
+cross join bookings.aircrafts_data 
+order by "range" desc 
+
+
+/**** FILE END  *****/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
