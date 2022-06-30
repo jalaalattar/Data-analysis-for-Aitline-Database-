@@ -7,4 +7,4 @@ Data Analysis project to help Airline Company to help how they can optimize thei
 
 ![schema](<a href="https://im.ge/i/uSY0GK"><img src="https://i.im.ge/2022/06/30/uSY0GK.th.png" alt="uSY0GK.th.png" border="0"></a>)
 
-I would love to get your feedback and corrections on this as this is my irst project. 
+I would love to get your feedback and corrections on this as this is my first project. 
